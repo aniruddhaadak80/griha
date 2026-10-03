@@ -1,0 +1,324 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Griha — "kitchen tile" design system.
+
+   The product is a household ledger, so the interface is modelled on the thing
+   people actually keep a shared list on: the tiled wall above a kitchen
+   counter, with enamel plates clipped to it. That metaphor drives everything
+   below — grout lines between cards, glazed plate surfaces, and a small
+   persistent bar across the top so a shared board always feels like a board.
+
+   Palette rationale: warm plaster and glaze for every surface, terracotta for
+   anything the user can act on, verdigris for anything measured. Colour is
+   reserved for meaning, never decoration. Body text sits at #221B15 on #FBF7EE,
+   which is 13.6:1 — comfortably past WCAG AA.
+   ========================================================================== */
+
+:root {
+  /* Substrate */
+  --grout: #e3d7c1;
+  --grout-soft: #efe6d5;
+  --plaster: #fbf7ee;
+  --plate: #fffdf8;
+  --plate-sunk: #f5efe2;
+
+  /* Ink */
+  --ink: #221b15;
+  --ink-soft: #58493c;
+  --ink-faint: #8a7867;
+
+  /* Signal */
+  --terracotta: #c0391f;
+  --terracotta-deep: #8f2a15;
+  --terracotta-wash: #fbe6df;
+  --verdigris: #1f6b5e;
+  --verdigris-wash: #ddefe9;
+  --indigo: #2b4a78;
+  --indigo-wash: #e2e9f3;
+  --saffron: #b57a10;
+  --saffron-wash: #fbeed2;
+  --madder: #8c3b4a;
+  --madder-wash: #f7e3e6;
+
+  /* Member tints, referenced by `tint` on a member record. */
+  --tint-terracotta: #c0391f;
+  --tint-verdigris: #1f6b5e;
+  --tint-indigo: #2b4a78;
+  --tint-saffron: #b57a10;
+  --tint-madder: #8c3b4a;
+
+  --focus: #1f6b5e;
+  --shadow-plate: 0 1px 0 rgba(34, 27, 21, 0.06), 0 2px 10px -6px rgba(34, 27, 21, 0.22);
+  --shadow-lift: 0 2px 0 rgba(34, 27, 21, 0.07), 0 12px 28px -14px rgba(34, 27, 21, 0.35);
+}
+
+@theme inline {
+  --color-grout: var(--grout);
+  --color-grout-soft: var(--grout-soft);
+  --color-plaster: var(--plaster);
+  --color-plate: var(--plate);
+  --color-plate-sunk: var(--plate-sunk);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-terracotta: var(--terracotta);
+  --color-terracotta-deep: var(--terracotta-deep);
+  --color-terracotta-wash: var(--terracotta-wash);
+  --color-verdigris: var(--verdigris);
+  --color-verdigris-wash: var(--verdigris-wash);
+  --color-indigo: var(--indigo);
+  --color-indigo-wash: var(--indigo-wash);
+  --color-saffron: var(--saffron);
+  --color-saffron-wash: var(--saffron-wash);
+  --color-madder: var(--madder);
+  --color-madder-wash: var(--madder-wash);
+
+  --font-display: var(--font-fraunces), Georgia, "Times New Roman", serif;
+  --font-body: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+* {
+  border-color: var(--grout);
+}
+
+html {
+  background-color: var(--grout);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--plaster);
+  color: var(--ink);
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  /* The tiled substrate: two grout lines, barely there, so large empty areas
+     still read as a surface rather than a void. */
+  background-image:
+    linear-gradient(to right, rgba(34, 27, 21, 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(34, 27, 21, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  background-position: -1px -1px;
+  min-height: 100dvh;
+}
+
+/* ---------------------------------------------------------------- type ---- */
+
+.font-display {
+  font-family: var(--font-fraunces), Georgia, serif;
+  font-optical-sizing: auto;
+  font-variation-settings: "SOFT" 18, "WONK" 1;
+  letter-spacing: -0.015em;
+}
+
+/* Small-caps label used for every field name, tile header and axis title. This
+   is the layout rhythm: the interface is mostly labels, with values beneath. */
+.label {
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.stamp {
+  font-family: var(--font-outfit), sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------- tiles ---- */
+
+/* A glazed enamel plate: hard 2px rim, inset highlight, no blur. */
+.tile {
+  background-color: var(--plate);
+  border: 2px solid var(--ink);
+  border-radius: 14px;
+  box-shadow: var(--shadow-plate);
+}
+
+.tile-sunk {
+  background-color: var(--plate-sunk);
+  border: 1px solid var(--grout);
+  border-radius: 10px;
+}
+
+.tile-label {
+  font-family: var(--font-outfit), sans-serif;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------------ controls ---- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 10px;
+  border: 2px solid var(--ink);
+  padding: 0.5rem 0.95rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: transform 120ms ease, box-shadow 120ms ease, background-color 120ms ease;
+  box-shadow: 0 2px 0 var(--ink);
+  min-height: 44px; /* comfortable touch target on a phone */
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--ink);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+}
+
+.btn-primary {
+  background-color: var(--terracotta);
+  color: #fff8f3;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--terracotta-deep);
+}
+
+.btn-secondary {
+  background-color: var(--plate);
+  color: var(--ink);
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background-color: var(--grout-soft);
+}
+
+.btn-quiet {
+  background-color: transparent;
+  border-color: var(--grout);
+  color: var(--ink-soft);
+  box-shadow: none;
+}
+
+.btn-quiet:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.field {
+  width: 100%;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background-color: var(--plate);
+  padding: 0.55rem 0.7rem;
+  font-size: 0.9375rem;
+  color: var(--ink);
+  min-height: 44px;
+}
+
+.field::placeholder {
+  color: var(--ink-faint);
+}
+
+/* One focus treatment everywhere: a verdigris ring with enough offset to be
+   legible against both the plaster and the plates. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* -------------------------------------------------------------- chrome ---- */
+
+.nav-plate {
+  background-color: var(--plate);
+  border-bottom: 2px solid var(--ink);
+}
+
+.grout-divider > * + * {
+  border-top: 1px solid var(--grout);
+}
+
+/* -------------------------------------------------------------- motion ---- */
+
+/* The one shared entrance: a plate being set down on the counter. Every
+   motion in the product is this, plus the bar re-flowing on data change. */
+@keyframes set-down {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-set-down {
+  animation: set-down 260ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------- misc ---- */
+
+/* Balance bar: the signature readout. Widths are set inline from real values;
+   this only supplies the frame and the seam between segments. */
+.balance-track {
+  background-color: var(--grout-soft);
+  border: 2px solid var(--ink);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.balance-seam {
+  border-right: 2px solid var(--ink);
+}
+
+.stamp-seal {
+  font-family: var(--font-outfit), monospace;
+  font-size: 0.6875rem;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+  color: var(--ink-soft);
+}
+
+.scroll-x {
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* Skip link: visible only on keyboard focus. */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: var(--ink);
+  color: var(--plaster);
+  padding: 0.6rem 1rem;
+  border-radius: 0 0 10px 0;
+}
+
+.skip-link:focus {
+  left: 0;
+}

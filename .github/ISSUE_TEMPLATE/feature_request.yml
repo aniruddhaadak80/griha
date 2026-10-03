@@ -1,0 +1,43 @@
+name: Improvement
+description: A change to the product that keeps it honest, fast or accessible
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard or impossible today? Describe the situation rather than the fix.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would change
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      multiple: true
+      options:
+        - Fairness engine or its arithmetic
+        - Board and claiming flow
+        - Agent console and MCP tools
+        - Install experience / PWA behaviour
+        - Export formats
+        - Integrity chain and audit replay
+        - Accessibility and keyboard use
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+      description: Especially if you looked at an existing tool for this.
+    validations:
+      required: false

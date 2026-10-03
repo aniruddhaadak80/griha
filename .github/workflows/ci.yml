@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Cancel superseded runs on the same branch so a push does not queue behind its
+# own earlier commits.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: typecheck, lint, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` installs exactly what the lockfile records, so CI cannot pass
+      # on a dependency the committed tree does not have.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      # No database is configured on purpose. The suite forces the embedded
+      # adapter in tests/setup.ts, so it must pass with no services running.
+      - name: Unit and integration tests
+        run: npm run test
+
+      - name: Production build
+        run: npm run build
+
+  browser:
+    name: browser journey
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: quality
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # The app is served with the embedded database opted in explicitly, so the
+      # production bundle is exercised without provisioning a hosted database.
+      # The hosted path is verified separately against the live deployment.
+      - name: Start the production server
+        run: |
+          npm run build
+          ALLOW_EMBEDDED_DB=1 npm start -- --port 3000 &
+          npx wait-on http://127.0.0.1:3000/api/health --timeout 120000
+
+      - name: Browser journey
+        env:
+          GRIHA_BASE_URL: http://127.0.0.1:3000
+        run: npm run e2e

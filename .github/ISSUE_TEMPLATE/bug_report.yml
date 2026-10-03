@@ -1,0 +1,62 @@
+name: Bug report
+description: Something on the board, the fairness number or the agent tools behaved wrongly
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing this. Griha's whole argument is that a number you can
+        check is better than a number you have to trust, so a report that shows
+        the state which produced it is worth a great deal.
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What did you do, what did you expect, and what did you see?
+      placeholder: |
+        I claimed "Take out the recycling" for two people on the board, pressed
+        Mark done, and the fair-share bar did not move.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ledger
+    attributes:
+      label: The household state at the time
+      description: |
+        Only needed if a fairness number looked wrong. Member count, their
+        capacity weights, and roughly how many completions were in the window.
+      placeholder: |
+        3 members with capacity 1 / 1.4 / 0.7, about 14 completions in 28 days.
+    validations:
+      required: false
+
+  - type: input
+    id: engine
+    attributes:
+      label: Engine version
+      description: Shown at the top of the fairness report and in /api/health.
+      placeholder: griha-fairness/2026.10.1
+    validations:
+      required: false
+
+  - type: textarea
+    id: console
+    attributes:
+      label: Browser console output
+      description: Any errors or warnings, especially from the agent console.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I reproduced this more than once
+          required: false
+        - label: This only happens with a real weather or holiday feed (not the offline sample)
+          required: false
+        - label: I checked this is not already covered by an open issue
+          required: false

@@ -1,0 +1,55 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+.next/
+out/
+build/
+dist/
+next-env.d.ts
+*.tsbuildinfo
+
+# Testing
+coverage/
+test-results/
+playwright-report/
+blob-report/
+.playwright/
+/tests/screenshots/
+
+# Local verification logs. These are written by `npm run dev`, `npm run build`
+# and `npm run start` and are never part of the source.
+*.log
+npm-debug.log*
+/dev.log
+/prod.log
+
+# Secrets. `.env*` is ignored wholesale so a new local file can never be
+# committed by accident; `.env.example` is force-added because it is the
+# documentation.
+.env*
+!.env.example
+
+# Embedded database, if anyone runs one with a data directory
+/.griha-data/
+*.sqlite
+*.sqlite3
+
+# Editor and OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# Vercel
+.vercel
+
+# Local agent/tooling caches
+.agent/
+.agents/
+skills-lock.json
+.vercel

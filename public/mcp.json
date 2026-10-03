@@ -1,0 +1,50 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-06-18/server.schema.json",
+  "name": "io.github.aniruddhaadak80/griha",
+  "description": "Griha — a shared household chore ledger with a deterministic fairness engine, a SHA-384 sealed audit chain, and the same service layer behind the web UI and the MCP tools.",
+  "version": "1.0.0",
+  "status": "active",
+  "repository": {
+    "url": "https://github.com/aniruddhaadak80/griha",
+    "source": "github"
+  },
+  "websiteUrl": "https://griha.vercel.app",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "griha",
+      "version": "1.0.0",
+      "transport": { "type": "streamable-http" },
+      "runtimeHint": "node22",
+      "environmentVariables": [
+        {
+          "name": "DATABASE_URL",
+          "description": "Hosted Postgres connection string. In production Griha refuses to boot without it rather than falling back to an embedded database that would lose every household on the next cold start.",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "DATABASE_SCHEMA",
+          "description": "Optional Postgres schema to namespace tables in when sharing one database with another application. Defaults to public.",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://griha.vercel.app/api/mcp",
+      "headers": [
+        {
+          "name": "x-griha-token",
+          "description": "The household board token from https://griha.vercel.app/settings. Required because an MCP client is an external program with no browser session to inherit; it must present an explicit credential. The read-only share token also works, but grants reads only.",
+          "isRequired": true,
+          "isSecret": true
+        }
+      ]
+    }
+  ]
+}
