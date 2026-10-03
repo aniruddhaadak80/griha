@@ -111,7 +111,7 @@ start. `GET /api/health` reports which adapter is live and whether it is durable
 | `npm start` | Serve the production build |
 | `npm run typecheck` | `tsc --noEmit`, strict |
 | `npm run lint` | ESLint, zero warnings tolerated |
-| `npm run test` | 107 unit and integration tests |
+| `npm run test` | 109 unit and integration tests |
 | `npm run e2e` | Playwright journey, desktop and mobile |
 | `npm run verify:live` | 91 checks against a deployed instance |
 
@@ -290,9 +290,18 @@ The honesty rules the panel enforces:
 
 - If the model cannot load, it shows the actual error. The deterministic engine is
   unaffected.
+- `hasWebGpu()` is a feature check, not a working adapter. The panel therefore tries
+  `webgpu`/`int4` and then falls back to `wasm`/`int8` explicitly, because WebTabPFN
+  does not fall back by itself — without this the panel is dead in headless Chromium,
+  Safari and Firefox. If neither backend starts, both failures are shown.
+- A table with a single class is not a table a classifier can fit, so the panel says so
+  in plain words instead of surfacing the model's opaque error. The first-run household
+  is seeded with two genuine lapses for this reason: a history of nothing but
+  completions teaches the model nothing.
 - With fewer than six labelled rows it refuses to predict rather than predicting noise.
 - Every probability is shown with the number of training rows behind it, and the copy
   says plainly that tens of rows is a very small table for a prior-fitted network.
+  Predictions close to 0.5 are labelled `UNCERTAIN` rather than dressed up as a verdict.
 
 > **Why open matters here.** The weights are Prior Labs' open TabPFN v2, downloaded
 > once and cached by the browser. Nothing about your household is uploaded — not the
@@ -527,7 +536,7 @@ Validation is real: `{"dueOn":"not-a-date"}` returns `400` with
 `tests/engine.test.ts` · `tests/integrity.test.ts` · `tests/repository.test.ts` ·
 `tests/validation.test.ts` · `tests/features.test.ts` · `e2e/journey.spec.ts`
 
-107 unit and integration tests, including boundary and degenerate cases for the
+109 unit and integration tests, including boundary and degenerate cases for the
 engine, tamper detection for the chain, and full CRUD against a real Postgres
 (PGlite is Postgres compiled to WASM, not a mock).
 
