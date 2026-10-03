@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "typegen": "next typegen",
     "e2e": "playwright test",
     "verify:live": "node scripts/verify-live.mjs"
   },

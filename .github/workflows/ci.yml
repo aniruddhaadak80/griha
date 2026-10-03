@@ -31,6 +31,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Next 16 generates `PageProps`, `LayoutProps` and `RouteContext` into
+      # .next/types. They only exist after typegen or a build, so typechecking
+      # before that step fails on a clean checkout. `npm run typecheck` runs
+      # typegen itself; this step just makes the ordering explicit.
+      - name: Generate route types
+        run: npm run typegen
+
       - name: Typecheck
         run: npm run typecheck
 
