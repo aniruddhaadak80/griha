@@ -13,6 +13,12 @@
    anything the user can act on, verdigris for anything measured. Colour is
    reserved for meaning, never decoration. Body text sits at #221B15 on #FBF7EE,
    which is 13.6:1 — comfortably past WCAG AA.
+
+   Cascade layers matter here. Every reusable class below lives in
+   `@layer components`, which Tailwind declares *before* its utilities. Without
+   it these rules would be emitted after the utilities and would win on equal
+   specificity — so `.btn { display: inline-flex }` would silently defeat
+   `md:hidden`, and the mobile menu button would stay on screen on desktop.
    ========================================================================== */
 
 :root {
@@ -101,6 +107,7 @@ body {
   min-height: 100dvh;
 }
 
+@layer components {
 /* ---------------------------------------------------------------- type ---- */
 
 .font-display {
@@ -321,4 +328,5 @@ body {
 
 .skip-link:focus {
   left: 0;
+}
 }

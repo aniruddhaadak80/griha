@@ -12,6 +12,7 @@ import {
   updateChore,
 } from "@/lib/service";
 import { emptyContext } from "@/lib/engine";
+import { buildTrainingTable } from "@/lib/ml/features";
 
 /**
  * Integration test against a real Postgres.
@@ -224,6 +225,39 @@ describe("seeding", () => {
     expect(result.fairnessScore).toBeLessThanOrEqual(100);
     expect(result.recommendation).not.toBeNull();
     expect(result.members.length).toBe(bundle.members.length);
+  });
+
+  it("seeds a history with both completions and genuine misses", async () => {
+    // Regression: a seeded history of nothing but completions produces a
+    // single-class training table, and TabPFN — being a classifier — correctly
+    // refuses to fit it. The demo board therefore has to contain the lapses a
+    // real four-week household history contains.
+    const r = await freshRepo();
+    await ensureHousehold(r, "owner-seed-ml", { name: "M", city: "Delhi", country: "IN" }, NOW);
+    const bundle = await loadBundle(r, "owner-seed-ml");
+    const rows = buildTrainingTable({
+      members: bundle.members,
+      chores: bundle.chores,
+      completions: bundle.completions,
+      context: emptyContext(NOW),
+      today: NOW.toISOString().slice(0, 10),
+    });
+
+    const positives = rows.filter((row) => row.label === 1);
+    const negatives = rows.filter((row) => row.label === 0);
+
+    expect(positives.length).toBeGreaterThan(0);
+    expect(negatives.length, "seeded board needs at least one missed chore").toBeGreaterThan(0);
+    expect(rows.length).toBeGreaterThanOrEqual(6);
+  });
+
+  it("seeds assignees, so the board is not entirely unclaimed", async () => {
+    const r = await freshRepo();
+    const { household } = await ensureHousehold(r, "owner-seed-assignee", { name: "A", city: "Delhi", country: "IN" }, NOW);
+    const page = await r.listChores(household.id, 50, 0);
+    expect(page.items.some((c) => c.assigneeId !== null)).toBe(true);
+    expect(page.items.some((c) => c.status === "claimed")).toBe(true);
+    expect(page.items.some((c) => c.status === "open")).toBe(true);
   });
 
   it("does not overwrite rows the user created after seeding", async () => {

@@ -48,7 +48,7 @@ interface WebTabPFNShape {
     predictProba(x: number[][]): Promise<Array<Record<string, number>>>;
     dispose(): Promise<void> | void;
   }>;
-  hasWebGpu?(): Promise<boolean>;
+  hasWebGpu?: () => boolean | Promise<boolean>;
 }
 
 let scriptPromise: Promise<WebTabPFNShape | null> | null = null;
@@ -130,6 +130,24 @@ export function TabPfnPanel({
         return;
       }
 
+      // A table with a single class is not a table the model can fit, and the
+      // failure it produces ("requires at least two classes") is opaque to
+      // anyone who has not read the TabPFN source. Say what is actually wrong.
+      const distinctLabels = new Set(training.map((row) => row.label));
+      if (distinctLabels.size < 2) {
+        const completed = training.filter((r) => r.label === 1).length;
+        setStatus({
+          ...IDLE_STATUS,
+          trainingRows: training.length,
+          error:
+            `Your history has ${completed} completed chore(s) and nothing that was assigned and then missed. ` +
+            "TabPFN is a classifier, so it needs both kinds of example — a table where every row is the same " +
+            "answer teaches it nothing. As soon as an assigned chore passes its due date unfinished it will have " +
+            "the other half.",
+        });
+        return;
+      }
+
       const runtime = await loadTabPfnRuntime();
       if (!runtime) {
         setStatus({
@@ -141,20 +159,60 @@ export function TabPfnPanel({
         return;
       }
 
-      let backend: "webgpu" | "wasm" = "wasm";
-      let precision: "int4" | "int8" = "int8";
+      // Backend selection with a real fallback.
+      //
+      // WebTabPFN never falls back on its own — a `hasWebGpu()` feature check
+      // can pass while there is no usable adapter at all, which is exactly what
+      // happens in headless Chromium and in browsers that do not implement
+      // WebGPU. So the order is attempted explicitly and a failure is reported
+      // rather than swallowed.
+      const attempts: Array<{ backend: "webgpu" | "wasm"; precision: "int4" | "int8" }> = [];
 
+      // `hasWebGpu` is a feature check only. Depending on the build it may be a
+      // plain boolean or a promise, so it is normalised here — and its result is
+      // still only a hint, because a usable adapter can be absent even when the
+      // feature is reported as present. Hence the explicit fallback below.
+      let hasGpu = false;
       try {
-        const hasGpu = (await runtime.hasWebGpu?.()) ?? false;
-        if (hasGpu) {
-          backend = "webgpu";
-          precision = "int4";
-        }
+        hasGpu = typeof runtime.hasWebGpu === "function" ? Boolean(await runtime.hasWebGpu()) : false;
       } catch {
-        // A WebGPU feature check that throws simply means we stay on WASM.
+        hasGpu = false;
+      }
+      if (hasGpu) attempts.push({ backend: "webgpu", precision: "int4" });
+      attempts.push({ backend: "wasm", precision: "int8" });
+
+      let estimator: Awaited<ReturnType<WebTabPFNShape["load"]>> | null = null;
+      let backend: "webgpu" | "wasm" | null = null;
+      let precision: "int4" | "int8" | null = null;
+      const failures: string[] = [];
+
+      for (const attempt of attempts) {
+        try {
+          estimator = await runtime.load({
+            task: "classification",
+            backend: attempt.backend,
+            precision: attempt.precision,
+            cache: true,
+          });
+          backend = attempt.backend;
+          precision = attempt.precision;
+          break;
+        } catch (error) {
+          failures.push(
+            `${attempt.backend}/${attempt.precision}: ${error instanceof Error ? error.message : "unknown error"}`,
+          );
+        }
       }
 
-      const estimator = await runtime.load({ task: "classification", backend, precision, cache: true });
+      if (!estimator) {
+        setStatus({
+          ...IDLE_STATUS,
+          trainingRows: training.length,
+          error: `TabPFN could not start on this device. Tried ${failures.join(" · ")}. The deterministic fairness report above is unaffected.`,
+        });
+        return;
+      }
+
       estimatorRef.current = estimator;
 
       await estimator.fit(
@@ -189,8 +247,8 @@ export function TabPfnPanel({
         missed: training.filter((r) => r.label === 0).length,
       });
       setStatus({
-        backend,
-        precision,
+        backend: backend ?? "wasm",
+        precision: precision ?? "int8",
         ready: true,
         error: null,
         trainingRows: training.length,

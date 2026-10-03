@@ -49,7 +49,7 @@ function windowStartIso(now: Date, days: number): string {
 
 export interface SeedPlan {
   members: Array<CreateMemberInput>;
-  chores: Array<CreateChoreInput>;
+  chores: Array<CreateChoreInput & { assigneeIndex?: number }>;
   /** `daysAgo` is relative to seed time, so the demo is never stale. */
   completions: Array<{ choreIndex: number; memberIndex: number; daysAgo: number; minutesSpent: number }>;
 }
@@ -64,10 +64,15 @@ const TINTS = ["terracotta", "verdigris", "indigo", "saffron", "madder"] as cons
  * are created only once per session, so they can never collide with rows a real
  * user creates afterwards.
  *
- * The completion history is deliberately *not* random: a fixed ladder of work
- * is recorded so the fairness engine has something true to measure. TabPFN needs
- * a real labelled table to fit, and fabricating one per request would make its
- * output meaningless.
+ * The completion history is deliberately *not* random and deliberately *not*
+ * flawless. A four-week household history always contains lapses: chores that
+ * were assigned, ran past their due date and were never done. Without those the
+ * TabPFN training table would hold a single class — every example the same
+ * answer — and the model would correctly refuse to fit it. Inventing a spotless
+ * record would make the demo look tidier than any real home, and would make the
+ * ML panel inoperative on the first screen anyone sees.
+ *
+ * So two chores are seeded as genuinely missed: assigned, overdue, still open.
  */
 export function buildSeedPlan(now: Date): SeedPlan {
   const iso = (daysFromNow: number) =>
@@ -80,30 +85,35 @@ export function buildSeedPlan(now: Date): SeedPlan {
       { name: "Nani", capacity: 0.7, tint: TINTS[2] },
     ],
     chores: [
-      { title: "Take out the recycling", category: "admin", effortMinutes: 10, dueOn: iso(-2), outdoor: true, note: "Blue bin by the gate." },
-      { title: "Wash the breakfast dishes", category: "kitchen", effortMinutes: 15, dueOn: iso(-1), outdoor: false, note: "Soak the kadhai overnight." },
-      { title: "Water the tulsi", category: "outdoor", effortMinutes: 5, dueOn: iso(0), outdoor: true, note: "Morning light only." },
-      { title: "Change the bed linen", category: "laundry", effortMinutes: 20, dueOn: iso(0), outdoor: false, note: "Two sets in the dryer." },
-      { title: "Mop the kitchen floor", category: "cleaning", effortMinutes: 25, dueOn: iso(1), outdoor: false, note: "After dinner, not before." },
+      // -- two lapses: assigned, past due, never completed ------------------
+      { title: "Reseal the bathroom window", category: "maintenance", effortMinutes: 25, dueOn: iso(-6), assigneeIndex: 1, outdoor: false, note: "Sealant is in the hall cupboard." },
+      { title: "Replace the corridor bulb", category: "maintenance", effortMinutes: 10, dueOn: iso(-3), assigneeIndex: 0, outdoor: false, note: "E27, from the hardware shelf." },
+
+      // -- the live board --------------------------------------------------
+      { title: "Take out the recycling", category: "admin", effortMinutes: 10, dueOn: iso(-2), assigneeIndex: 2, outdoor: true, note: "Blue bin by the gate." },
+      { title: "Wash the breakfast dishes", category: "kitchen", effortMinutes: 15, dueOn: iso(-1), assigneeIndex: 1, outdoor: false, note: "Soak the kadhai overnight." },
+      { title: "Water the tulsi", category: "outdoor", effortMinutes: 5, dueOn: iso(0), assigneeIndex: 2, outdoor: true, note: "Morning light only." },
+      { title: "Change the bed linen", category: "laundry", effortMinutes: 20, dueOn: iso(0), assigneeIndex: 1, outdoor: false, note: "Two sets in the dryer." },
+      { title: "Mop the kitchen floor", category: "cleaning", effortMinutes: 25, dueOn: iso(1), assigneeIndex: 0, outdoor: false, note: "After dinner, not before." },
       { title: "Clean the geyser vent", category: "maintenance", effortMinutes: 30, dueOn: iso(2), outdoor: false, note: "Unplug first." },
       { title: "Buy milk and curd", category: "shopping", effortMinutes: 20, dueOn: iso(2), outdoor: true, note: "The corner shop closes at 9." },
       { title: "Clean the balcony plants", category: "outdoor", effortMinutes: 15, dueOn: iso(3), outdoor: true, note: "Skip in heavy rain." },
     ],
     completions: [
-      { choreIndex: 0, memberIndex: 1, daysAgo: 5, minutesSpent: 10 },
-      { choreIndex: 1, memberIndex: 0, daysAgo: 6, minutesSpent: 18 },
-      { choreIndex: 2, memberIndex: 2, daysAgo: 4, minutesSpent: 5 },
-      { choreIndex: 3, memberIndex: 1, daysAgo: 6, minutesSpent: 22 },
-      { choreIndex: 4, memberIndex: 0, daysAgo: 8, minutesSpent: 25 },
-      { choreIndex: 0, memberIndex: 0, daysAgo: 12, minutesSpent: 10 },
-      { choreIndex: 1, memberIndex: 1, daysAgo: 13, minutesSpent: 15 },
-      { choreIndex: 4, memberIndex: 2, daysAgo: 15, minutesSpent: 30 },
-      { choreIndex: 3, memberIndex: 2, daysAgo: 17, minutesSpent: 20 },
-      { choreIndex: 0, memberIndex: 2, daysAgo: 19, minutesSpent: 12 },
-      { choreIndex: 1, memberIndex: 0, daysAgo: 20, minutesSpent: 16 },
-      { choreIndex: 4, memberIndex: 1, daysAgo: 22, minutesSpent: 28 },
-      { choreIndex: 2, memberIndex: 1, daysAgo: 24, minutesSpent: 6 },
-      { choreIndex: 3, memberIndex: 0, daysAgo: 25, minutesSpent: 20 },
+      { choreIndex: 2, memberIndex: 1, daysAgo: 5, minutesSpent: 10 },
+      { choreIndex: 3, memberIndex: 0, daysAgo: 6, minutesSpent: 18 },
+      { choreIndex: 4, memberIndex: 2, daysAgo: 4, minutesSpent: 5 },
+      { choreIndex: 5, memberIndex: 1, daysAgo: 6, minutesSpent: 22 },
+      { choreIndex: 6, memberIndex: 0, daysAgo: 8, minutesSpent: 25 },
+      { choreIndex: 2, memberIndex: 0, daysAgo: 12, minutesSpent: 10 },
+      { choreIndex: 3, memberIndex: 1, daysAgo: 13, minutesSpent: 15 },
+      { choreIndex: 6, memberIndex: 2, daysAgo: 15, minutesSpent: 30 },
+      { choreIndex: 5, memberIndex: 2, daysAgo: 17, minutesSpent: 20 },
+      { choreIndex: 2, memberIndex: 2, daysAgo: 19, minutesSpent: 12 },
+      { choreIndex: 3, memberIndex: 0, daysAgo: 20, minutesSpent: 16 },
+      { choreIndex: 6, memberIndex: 1, daysAgo: 22, minutesSpent: 28 },
+      { choreIndex: 4, memberIndex: 1, daysAgo: 24, minutesSpent: 6 },
+      { choreIndex: 5, memberIndex: 0, daysAgo: 25, minutesSpent: 20 },
     ],
   };
 }
@@ -195,6 +205,7 @@ export async function ensureHousehold(
       dueOn: c.dueOn,
       outdoor: c.outdoor ?? false,
       note: c.note ?? "",
+      assigneeId: c.assigneeIndex === undefined ? null : (memberIds[c.assigneeIndex] ?? null),
     })),
     completions: plan.completions
       .map((entry) => ({

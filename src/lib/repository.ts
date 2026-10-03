@@ -110,6 +110,8 @@ export interface SeedInput {
     dueOn: string;
     outdoor: boolean;
     note: string;
+    /** Member id, or null for an unclaimed chore. */
+    assigneeId: string | null;
   }>;
   completions: Array<{
     id: string;
@@ -705,9 +707,11 @@ function makeRepository(kind: Repository["kind"], db: SqlExecutor): Repository {
         statements.push({
           sql: `INSERT INTO ${schema}.chores
                (id, household_id, title, category, effort_minutes, due_on, assignee_id, status, outdoor, note, deleted, created_at, updated_at)
-             SELECT c.id, $1, c.title, c.category, c.effort_minutes, c.due_on, NULL, 'open', c.outdoor, c.note, FALSE, $2, $2
-               FROM unnest($3::text[], $4::text[], $5::text[], $6::integer[], $7::text[], $8::boolean[], $9::text[])
-                 AS c(id, title, category, effort_minutes, due_on, outdoor, note)`,
+             SELECT c.id, $1, c.title, c.category, c.effort_minutes, c.due_on, c.assignee_id,
+                    CASE WHEN c.assignee_id IS NULL THEN 'open' ELSE 'claimed' END,
+                    c.outdoor, c.note, FALSE, $2, $2
+               FROM unnest($3::text[], $4::text[], $5::text[], $6::integer[], $7::text[], $8::text[], $9::boolean[], $10::text[])
+                 AS c(id, title, category, effort_minutes, due_on, assignee_id, outdoor, note)`,
           params: [
             householdId,
             now,
@@ -716,6 +720,7 @@ function makeRepository(kind: Repository["kind"], db: SqlExecutor): Repository {
             input.chores.map((c) => c.category),
             input.chores.map((c) => c.effortMinutes),
             input.chores.map((c) => c.dueOn),
+            input.chores.map((c) => c.assigneeId),
             input.chores.map((c) => c.outdoor),
             input.chores.map((c) => c.note),
           ],

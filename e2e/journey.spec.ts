@@ -41,30 +41,41 @@ test.describe("Griha primary journey", () => {
     expect(consoleErrors, `console errors on landing: ${consoleErrors.join(" | ")}`).toHaveLength(0);
   });
 
-  test("navigation and footer both expose the repository URL", async ({ page }) => {
+  test("navigation and footer both expose the repository URL", async ({ page }, testInfo) => {
     await page.goto("/");
 
-    const header = page.locator("header");
-    await expect(header.getByRole("link", { name: /View source/i }).first()).toHaveAttribute(
-      "href",
-      "https://github.com/aniruddhaadak80/griha",
-    );
+    const isMobile = testInfo.project.name === "mobile";
+    const REPO = "https://github.com/aniruddhaadak80/griha";
 
-    const footer = page.locator("footer");
-    await expect(footer.getByRole("link", { name: /View source/i })).toHaveAttribute(
-      "href",
-      "https://github.com/aniruddhaadak80/griha",
-    );
-
-    // The mobile drawer must carry the same link.
-    const menu = page.getByRole("button", { name: /Open menu/i });
-    if (await menu.isVisible()) {
+    // The header link is a desktop affordance. On a narrow viewport it is
+    // replaced by the drawer button, so the repository link has to be checked
+    // where it is actually reachable — otherwise this test would pass on desktop
+    // while the phone layout quietly dropped it.
+    if (isMobile) {
+      const menu = page.getByRole("button", { name: /Open menu/i });
+      await expect(menu).toBeVisible();
       await menu.click();
       await expect(page.locator("#mobile-nav").getByRole("link", { name: /View source/i })).toHaveAttribute(
         "href",
-        "https://github.com/aniruddhaadak80/griha",
+        REPO,
       );
+    } else {
+      await expect(page.locator("header").getByRole("link", { name: /View source/i }).first()).toHaveAttribute(
+        "href",
+        REPO,
+      );
+      const menu = page.getByRole("button", { name: /Open menu/i });
+      if (await menu.isVisible()) {
+        await menu.click();
+        await expect(page.locator("#mobile-nav").getByRole("link", { name: /View source/i })).toHaveAttribute(
+          "href",
+          REPO,
+        );
+      }
     }
+
+    // The footer link is present at every width.
+    await expect(page.locator("footer").getByRole("link", { name: /View source/i })).toHaveAttribute("href", REPO);
   });
 
   test("job 1: a housemate can claim a chore so nobody has to ask twice", async ({ page }) => {
@@ -103,13 +114,16 @@ test.describe("Griha primary journey", () => {
     await page.goto("/fairness");
     await expect(page.getByRole("heading", { name: /fairness report/i })).toBeVisible();
 
-    // The household score.
-    await expect(page.getByText(/^Fairness$/)).toBeVisible();
+    // The household score, identified by its own caption rather than a bare word
+    // that also appears in the nav.
+    await expect(page.locator("main").getByText(/spread across the household/i)).toBeVisible();
+    await expect(page.locator("main").getByText(/griha-fairness\//).first()).toBeVisible();
 
     // At least one weighted factor with its arithmetic is rendered.
-    const factor = page.locator("li", { hasText: "Share parity" }).first();
+    const factor = page.locator("main li", { hasText: "Share parity" }).first();
     await expect(factor).toContainText("weight");
     await expect(factor).toContainText("raw");
+    await expect(factor).toContainText("pts");
 
     // Selecting a member reveals their per-member factor breakdown.
     const memberButton = page.locator('button[aria-expanded="false"]').filter({ hasText: /pts/ }).first();
@@ -156,15 +170,24 @@ test.describe("Griha primary journey", () => {
 
     const choreId = new URL(page.url()).pathname.split("/").pop()!;
 
-    // Update — via the detail page
-    await page.getByRole("button", { name: /Release the claim/i }).click().catch(() => {
-      // Unclaimed chores have nothing to release; that is not a failure.
-    });
-    await expect(page.getByRole("status").first()).toContainText(/Recorded|Recorded/);
+    // Update — a real mutation through a visible control on the detail page.
+    // Completing it records a completion, flips the status and appends a
+    // sealed audit event, all in one action.
+    const completeFor = page.locator("main").getByRole("button").filter({ hasNotText: /Delete/ });
+    await completeFor.first().click();
+
+    const status = page.getByRole("status").first();
+    await expect(status).toContainText(/Recorded/);
+    await expect(status).toContainText(/seal [0-9a-f]{12}/i);
+
+    // And it really persisted, not just re-rendered.
+    const afterComplete = await page.request.get(`/api/chores/${choreId}`);
+    const completedBody = await afterComplete.json();
+    expect(completedBody.data.chore.status).toBe("done");
 
     // Engine analysis is reachable and versioned
     await page.goto("/fairness");
-    await expect(page.getByText(/griha-fairness\//).first()).toBeVisible();
+    await expect(page.locator("main").getByText(/griha-fairness\//).first()).toBeVisible();
 
     // Delete — with confirmation
     await page.goto(`/chore/${choreId}`);
@@ -214,7 +237,7 @@ test.describe("Griha primary journey", () => {
     const result = page.getByTestId("integrity-result");
     await expect(result).toContainText(/Chain intact/);
     await expect(result).toContainText(/SHA-384/);
-    await expect(page.getByText(/Genesis/i)).toBeVisible();
+    await expect(page.getByText("Genesis", { exact: true })).toBeVisible();
   });
 
   test("validation failures are reported, not swallowed", async ({ page }) => {
@@ -228,13 +251,22 @@ test.describe("Griha primary journey", () => {
     expect(body.ok).toBe(false);
     expect(body.error.code).toBe("invalid_input");
 
-    // A real form error is visible to the user.
+    // Every form input carries the matching HTML constraint, so the browser stops
+    // bad input before it reaches the network. That is the right behaviour, and
+    // it is asserted here rather than assumed.
     await page.goto("/board");
     await page.getByRole("button", { name: /Add a chore/i }).click();
-    await page.getByLabel("What needs doing").fill("ab");
-    await page.getByLabel("What needs doing").fill("a");
+    const title = page.getByLabel("What needs doing");
+    await title.fill("ab");
+    await title.fill("a");
+    expect(await title.evaluate((el: HTMLInputElement) => el.minLength)).toBe(2);
+
+    const before = (await (await page.request.get("/api/chores")).json()).data.chores.length;
     await page.getByRole("button", { name: /Add to the board/i }).click();
-    await expect(page.getByText(/at least 2 character/i)).toBeVisible();
+    await page.waitForTimeout(750);
+    const after = (await (await page.request.get("/api/chores")).json()).data.chores.length;
+    expect(after, "an invalid title must not create a chore").toBe(before);
+    expect(await title.evaluate((el: HTMLInputElement) => el.checkValidity())).toBe(false);
   });
 
   test("install page renders a scannable QR and correct per-platform guidance", async ({ page }) => {
