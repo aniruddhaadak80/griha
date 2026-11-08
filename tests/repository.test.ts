@@ -194,7 +194,7 @@ describe("chore lifecycle through the service layer", () => {
       dueOn: "2026-10-10",
     });
     expect(await r.getChore(b.household.id, chore.value.id)).toBeNull();
-    const bundle = await loadBundle(r, "owner-iso-b");
+    const bundle = await loadBundle(r, "owner-iso-b", NOW);
     expect(bundle.chores.some((c) => c.id === chore.value.id)).toBe(false);
   });
 });
@@ -209,7 +209,7 @@ describe("seeding", () => {
     expect(second.seeded).toBe(false);
     expect(second.household.id).toBe(first.household.id);
 
-    const bundle = await loadBundle(r, "owner-seed");
+    const bundle = await loadBundle(r, "owner-seed", NOW);
     expect(bundle.members.length).toBeGreaterThan(0);
     expect(bundle.chores.length).toBeGreaterThan(0);
     expect(bundle.completions.length).toBeGreaterThan(0);
@@ -218,7 +218,7 @@ describe("seeding", () => {
   it("produces a valid fairness result from the seeded board", async () => {
     const r = await freshRepo();
     await ensureHousehold(r, "owner-seed-fair", { name: "S", city: "Delhi", country: "IN" }, NOW);
-    const bundle = await loadBundle(r, "owner-seed-fair");
+    const bundle = await loadBundle(r, "owner-seed-fair", NOW);
     const result = await computeHouseholdFairness(r, bundle, NOW, { context: emptyContext(NOW) });
 
     expect(result.fairnessScore).toBeGreaterThan(0);
@@ -234,7 +234,7 @@ describe("seeding", () => {
     // real four-week household history contains.
     const r = await freshRepo();
     await ensureHousehold(r, "owner-seed-ml", { name: "M", city: "Delhi", country: "IN" }, NOW);
-    const bundle = await loadBundle(r, "owner-seed-ml");
+    const bundle = await loadBundle(r, "owner-seed-ml", NOW);
     const rows = buildTrainingTable({
       members: bundle.members,
       chores: bundle.chores,

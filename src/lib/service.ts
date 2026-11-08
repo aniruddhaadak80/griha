@@ -247,27 +247,35 @@ export async function ensureDemoHousehold(
 /* Reads                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export async function loadBundle(repo: Repository, ownerId: string): Promise<HouseholdBundle> {
+export async function loadBundle(
+  repo: Repository,
+  ownerId: string,
+  now: Date = new Date(),
+): Promise<HouseholdBundle> {
   const household = await repo.getHousehold(ownerId);
   if (!household) throw new NotFoundError("No household exists for this session yet.");
 
   const [members, chorePage, completions] = await Promise.all([
     repo.listMembers(household.id),
     repo.listChores(household.id, 200, 0),
-    repo.listCompletions(household.id, windowStartIso(new Date(), WINDOW_DAYS)),
+    repo.listCompletions(household.id, windowStartIso(now, WINDOW_DAYS)),
   ]);
 
   return { household, members, chores: chorePage.items, completions };
 }
 
-export async function loadBundleByShareToken(repo: Repository, token: string): Promise<HouseholdBundle> {
+export async function loadBundleByShareToken(
+  repo: Repository,
+  token: string,
+  now: Date = new Date(),
+): Promise<HouseholdBundle> {
   const household = await repo.getHouseholdByShareToken(token);
   if (!household) throw new NotFoundError("That share link does not match any household.");
 
   const [members, chorePage, completions] = await Promise.all([
     repo.listMembers(household.id),
     repo.listChores(household.id, 200, 0),
-    repo.listCompletions(household.id, windowStartIso(new Date(), WINDOW_DAYS)),
+    repo.listCompletions(household.id, windowStartIso(now, WINDOW_DAYS)),
   ]);
 
   return { household, members, chores: chorePage.items, completions };
