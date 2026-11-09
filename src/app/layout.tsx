@@ -1,22 +1,26 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ServiceWorkerRegistrar } from "@/components/service-worker-registrar";
 import { site } from "@/config/site";
 import "./globals.css";
 
-const fraunces = Fraunces({
+// Self-hosted variable fonts. `next/font/google` fetches Google Fonts CSS at
+// build time, which fails in CI when that egress is unavailable and breaks
+// the Turbopack font loader with "next/font/google queries have exactly one
+// entry". Local fonts remove the build-time network dependency entirely.
+const fraunces = localFont({
+  src: "./fonts/fraunces.woff2",
   variable: "--font-fraunces",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "400 700",
   display: "swap",
 });
 
-const outfit = Outfit({
+const outfit = localFont({
+  src: "./fonts/outfit.woff2",
   variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: "300 700",
   display: "swap",
 });
 
